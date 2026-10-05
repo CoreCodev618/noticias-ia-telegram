@@ -1,0 +1,5 @@
+# ⚠️ NUNCA subas este archivo a GitHub
+.env
+__pycache__/
+*.pyc
+.venv/
