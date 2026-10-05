@@ -9,7 +9,7 @@ from pathlib import Path
 
 import feedparser
 import requests
-from deep_translator import GoogleTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 
 BASE_DIR = Path(__file__).parent
 SEEN_FILE = BASE_DIR / "seen.json"
@@ -61,12 +61,19 @@ def clean(html: str) -> str:
 def translate(text: str) -> str:
     if not text:
         return ""
-    for intento in range(3):
+    texto = text[:1500]
+    for intento in range(2):
         try:
-            time.sleep(1.5 * (intento + 1))
-            return GoogleTranslator(source="auto", target="es").translate(text[:4000])
+            time.sleep(1)
+            return GoogleTranslator(source="auto", target="es").translate(texto)
         except Exception:
-            if intento == 2:
+            break
+    for intento in range(2):
+        try:
+            time.sleep(1)
+            return MyMemoryTranslator(source="en-US", target="es-MX").translate(texto)
+        except Exception:
+            if intento == 1:
                 return text
     return text
 
