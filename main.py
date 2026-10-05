@@ -61,10 +61,14 @@ def clean(html: str) -> str:
 def translate(text: str) -> str:
     if not text:
         return ""
-    try:
-        return GoogleTranslator(source="auto", target="es").translate(text[:4000])
-    except Exception:
-        return text
+    for intento in range(3):
+        try:
+            time.sleep(1.5 * (intento + 1))
+            return GoogleTranslator(source="auto", target="es").translate(text[:4000])
+        except Exception:
+            if intento == 2:
+                return text
+    return text
 
 
 def send_telegram(token: str, chat_id: str, message: str) -> bool:
@@ -90,6 +94,7 @@ def main():
 
     seen = load_seen()
     sent = 0
+    MAX_POR_EJECUCION = 5
 
     for source_name, url in SOURCES:
         try:
@@ -111,6 +116,10 @@ def main():
                     seen.add(link)
                     sent += 1
                     time.sleep(2)
+                    if sent >= MAX_POR_EJECUCION:
+                        break
+            if sent >= MAX_POR_EJECUCION:
+                break
         except Exception as e:
             print(f"Error con {source_name}: {e}")
 
