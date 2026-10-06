@@ -2,7 +2,7 @@ name: Noticias IA → Telegram
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:   # permite ejecutarlo manualmente desde GitHub
 
 permissions:

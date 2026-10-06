@@ -16,19 +16,22 @@ export default {
       : `Eres un asistente experto en IA. Responde esta pregunta del usuario en español, claro, máximo 600 caracteres.\n\nPregunta: ${question}`;
 
     let answer = "Lo siento, no pude procesar tu pregunta ahora.";
-    try {
-      const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${env.GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-        }
-      );
-      const data = await r.json();
-      const t = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (t) answer = t.trim();
-    } catch (e) {}
+    for (let i = 0; i < 3; i++) {
+      try {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+          }
+        );
+        const data = await r.json();
+        const t = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (t) { answer = t.trim(); break; }
+      } catch (e) {}
+      await new Promise(res => setTimeout(res, 1500 * (i + 1)));
+    }
 
     await fetch(`https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage`, {
       method: "POST",

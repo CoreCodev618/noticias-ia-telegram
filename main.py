@@ -95,20 +95,25 @@ def resumir_gemini(title: str, summary: str) -> str | None:
         f"Título: {title}\nResumen: {summary}\n\n"
         "No agregues nada más fuera de ese formato. Máximo 700 caracteres."
     )
-    try:
-        r = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={key}",
-            json={"contents": [{"parts": [{"text": prompt}]}]},
-            timeout=30,
-        )
-        if r.ok:
-            data = r.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-        print(f"Gemini error {r.status_code}: {r.text[:200]}")
-        return None
-    except Exception as e:
-        print(f"Error Gemini: {e}")
-        return None
+    for intento in range(3):
+        try:
+            r = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={key}",
+                json={"contents": [{"parts": [{"text": prompt}]}]},
+                timeout=30,
+            )
+            if r.ok:
+                data = r.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            print(f"Gemini error {r.status_code}: {r.text[:200]}")
+            if r.status_code in (429, 503):
+                time.sleep(2 * (intento + 1))
+                continue
+            return None
+        except Exception as e:
+            print(f"Error Gemini: {e}")
+            return None
+    return None
 
 
 def send_telegram(token: str, chat_id: str, message: str) -> bool:
