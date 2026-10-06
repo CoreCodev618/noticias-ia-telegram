@@ -20,6 +20,11 @@ SOURCES = [
     ("TechCrunch IA", "https://techcrunch.com/category/artificial-intelligence/feed/"),
     ("OpenAI Blog", "https://openai.com/blog/rss.xml"),
     ("Hugging Face", "https://huggingface.co/blog/feed.xml"),
+    ("Anthropic", "https://www.anthropic.com/rss.xml"),
+    ("DeepMind", "https://deepmind.google/blog/rss.xml"),
+    ("Reddit r/artificial", "https://www.reddit.com/r/artificial/.rss"),
+    ("Reddit r/LocalLLaMA", "https://www.reddit.com/r/LocalLLaMA/.rss"),
+    ("Hacker News", "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT"),
 ]
 
 KEYWORDS = ["ai", "artificial intelligence", "llm", "gpt", " openai", "anthropic",
@@ -78,6 +83,34 @@ def translate(text: str) -> str:
     return text
 
 
+def resumir_gemini(title: str, summary: str) -> str | None:
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not key:
+        return None
+    prompt = (
+        "Eres editor de noticias de IA para un público general hispanohablante. "
+        "En base a esta noticia en inglés, escribe en español un resumen corto y claro con este formato EXACTO:\n"
+        "🧠 Qué pasó: <2-3 líneas sobre qué modelo/empresa/novedad salió>\n"
+        "💡 Ejemplo: <explica con un ejemplo concreto: antes, con modelos anteriores hacía X; ahora con este puedes Y>\n\n"
+        f"Título: {title}\nResumen: {summary}\n\n"
+        "No agregues nada más fuera de ese formato. Máximo 700 caracteres."
+    )
+    try:
+        r = requests.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={key}",
+            json={"contents": [{"parts": [{"text": prompt}]}]},
+            timeout=30,
+        )
+        if r.ok:
+            data = r.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        print(f"Gemini error {r.status_code}: {r.text[:200]}")
+        return None
+    except Exception as e:
+        print(f"Error Gemini: {e}")
+        return None
+
+
 def send_telegram(token: str, chat_id: str, message: str) -> bool:
     try:
         r = requests.post(
@@ -115,10 +148,16 @@ def main():
                 if not is_ai_related(title, summary):
                     seen.add(link)
                     continue
-                t_title = translate(title)
-                t_summary = translate(summary)[:400]
-                msg = (f"📰 <b>{t_title}</b>\n\n{t_summary}\n\n"
-                       f"🔗 {link}\n🏷 {source_name}")
+                resumen = resumir_gemini(title, summary)
+                if resumen:
+                    t_title = translate(title)
+                    msg = (f"📰 <b>{t_title}</b>\n\n{resumen}\n\n"
+                           f"🔗 {link}\n🏷 {source_name}")
+                else:
+                    t_title = translate(title)
+                    t_summary = translate(summary)[:400]
+                    msg = (f"📰 <b>{t_title}</b>\n\n{t_summary}\n\n"
+                           f"🔗 {link}\n🏷 {source_name}")
                 if send_telegram(token, chat_id, msg):
                     seen.add(link)
                     sent += 1
