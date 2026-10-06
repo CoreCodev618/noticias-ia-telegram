@@ -89,6 +89,7 @@ def resumir_gemini(title: str, summary: str) -> str | None:
         return None
     prompt = (
         "Eres editor de noticias de IA para un público general hispanohablante. "
+        "La noticia es REAL y reciente, aunque pueda ser posterior a tu entrenamiento: asume que es verdadera y NO la contradigas. "
         "En base a esta noticia en inglés, escribe en español un resumen corto y claro con este formato EXACTO:\n"
         "🧠 Qué pasó: <2-3 líneas sobre qué modelo/empresa/novedad salió>\n"
         "💡 Ejemplo: <explica con un ejemplo concreto: antes, con modelos anteriores hacía X; ahora con este puedes Y>\n\n"

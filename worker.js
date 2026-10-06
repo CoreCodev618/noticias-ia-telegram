@@ -11,9 +11,29 @@ export default {
     const question = msg.text;
     const replyTo = msg.reply_to_message ? msg.reply_to_message.text : "";
 
+    // Extraer link de la noticia si existe y descargar el artículo
+    let articulo = "";
+    const m = replyTo.match(/https?:\/\/\S+/);
+    if (m) {
+      try {
+        const page = await fetch(m[0], { headers: { "User-Agent": "Mozilla/5.0" }, redirect: "follow" });
+        const html = await page.text();
+        articulo = html.replace(/<script[\s\S]*?<\/script>/g, " ")
+                       .replace(/<style[\s\S]*?<\/style>/g, " ")
+                       .replace(/<[^>]+>/g, " ")
+                       .replace(/\s+/g, " ")
+                       .trim()
+                       .slice(0, 3000);
+      } catch (e) { articulo = ""; }
+    }
+
+    const contexto = articulo
+      ? `TEXTO DEL ARTÍCULO ORIGINAL:\n${articulo}`
+      : `NOTICIA:\n${replyTo}`;
+
     const prompt = replyTo
-      ? `Eres un asistente experto en IA. El usuario recibió esta noticia y te hace una pregunta sobre ella.\n\nNOTICIA:\n${replyTo}\n\nPREGUNTA DEL USUARIO: ${question}\n\nResponde en español, claro, máximo 600 caracteres.`
-      : `Eres un asistente experto en IA. Responde esta pregunta del usuario en español, claro, máximo 600 caracteres.\n\nPregunta: ${question}`;
+      ? `Eres un asistente experto en IA. El usuario recibió esta noticia y te hace una pregunta sobre ella. La noticia es REAL y reciente, aunque pueda ser posterior a tu fecha de entrenamiento: NO la descartes ni la llames falsa. Usa la información proporcionada para responder.\n\n${contexto}\n\nPREGUNTA DEL USUARIO: ${question}\n\nResponde en español, claro, con ejemplos si aplica. Máximo 600 caracteres.`
+      : `Eres un asistente experto en IA. Responde esta pregunta del usuario en español, claro, con ejemplos si aplica. Máximo 600 caracteres.\n\nPregunta: ${question}`;
 
     let answer = "Lo siento, no pude procesar tu pregunta ahora.";
     for (let i = 0; i < 3; i++) {
